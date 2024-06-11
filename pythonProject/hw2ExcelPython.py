@@ -22,7 +22,7 @@ with pd.ExcelWriter(BCM_file, mode="a", engine="openpyxl") as writer:
             sheet_name = file.stem
 
             # Insert dataframe into excel file as new sheet
-            df.to_excel(writer, sheet_name=sheet_name, index=False)
+            df.to_excel(writer, sheet_name=sheet_name, header=False, index=False)
 
             print(f"Inserted {file.name} into {BCM_file} as {sheet_name} sheet.")
         except Exception as e:
