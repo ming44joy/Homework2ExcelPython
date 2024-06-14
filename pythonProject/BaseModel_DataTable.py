@@ -8,6 +8,7 @@ import seaborn as sns
 from typing import Any, Optional, Union, Tuple, List
 from whatif import Model, get_sim_results_df
 from mpl_toolkits.mplot3d import Axes3D
+from sklearn.model_selection._search import ParameterGrid
 
 
 # D = 0.06S^2 - 35S + 4900
@@ -314,35 +315,168 @@ plt.show()
 # 1f Simulate
 
 # Set seed
-np.random.seed(4470)
+
 
 # Define uniform distribution for variable cost
-variable_cost_distribution = np.random.uniform(low=80, high=120, size=1000)
+#variable_cost_distribution = np.random.uniform(low=80, high=120, size=1000)
 
 # Define random inputs dictionary
-random_inputs1 = {'variable_cost_unit': variable_cost_distribution}
+#random_inputs1 = {'variable_cost_unit': variable_cost_distribution}
 
 # Define outputs
-outputs1 = ['profit']
+#outputs1 = ['profit']
 
 # Perform simulation
 # with pd.option_context('mode.use_inf_as_na', True): # Added this line to resolve FutureWarning
-simulation_results = model.simulate(random_inputs1, outputs1)
+#simulation_results = model.simulate(random_inputs1, outputs1)
 
 # Create data frame
-simulation_df = get_sim_results_df(simulation_results)
+#simulation_df = get_sim_results_df(simulation_results)
 
 # Create histogram for profit in simulation
-plt.figure(figsize=(10, 6))
-sns.histplot(simulation_df['profit'], bins=50, kde=True)
-plt.xlabel('Profit ($)')
-plt.ylabel('Frequency')
-plt.title('Distribution of Profit from Simulation')
-plt.show()
+#plt.figure(figsize=(10, 6))
+#sns.histplot(simulation_df['profit'], bins=50, kde=True)
+#plt.xlabel('Profit ($)')
+#plt.ylabel('Frequency')
+#plt.title('Distribution of Profit from Simulation')
+#plt.show()
 
 # Calculate probability that profit is negative in simulation
-neg_profit_probability = (simulation_df['profit'] < 0).mean()
+#neg_profit_probability = (simulation_df['profit'] < 0).mean()
+#print(f'Negative Profit Probability: {neg_profit_probability:.2%}')
+
+
+# SIMULATION REDO
+# Define range of selling prices
+#selling_price_range = np.arange(80, 141, 10)
+
+# Define variable cost range
+#variable_cost_range = np.arange(85, 111, 5)
+
+#np.random.seed(4470)
+
+# Number of simulations for each selling price
+#num_sims = 1000
+
+# Create lists to store profits and demand in for each simulation run
+#profits = []
+#demands = []
+#selling_prices = []
+
+# Run simulation
+#for selling_price in selling_price_range:
+    # Prepare random inputs
+#    random_inputs = {
+#        'variable_cost_unit': np.random.uniform(80, 120, num_sims)
+#    }
+    # Prepare scenario inputs
+#    scenario_inputs = {
+#        'selling_price': [selling_price]
+#    }
+    # Specify outputs
+#    outputs = ['demand', 'profit']
+
+    # Call simulate function
+#    results = model.simulate(random_inputs, outputs, scenario_inputs=scenario_inputs)
+
+    # Process results
+#    for result in results:
+#        profit_array = result['output']['profit']
+#        demand_array = result['output']['demand']
+
+        # Ensure profit_array and demand_array are lists
+#        if not isinstance(profit_array, list):
+#            profit_array = [profit_array]
+#        if not isinstance(demand_array, list):
+#            demand_array = [demand_array]
+
+        # Extend lists
+#        profits.extend(profit_array)
+#        demands.extend(demand_array)
+
+        # Extend selling prices
+#        selling_prices.extend(['selling_price'] * len(profit_array))
+
+
+# Create dataframe
+#results_df = pd.DataFrame({
+#    'selling_price': selling_prices,
+#    'profit': profits,
+#    'demand': demands
+#})
+
+
+#results_df['profit'] = results_df['profit'].apply(lambda x: x[0] if isinstance(x, (list, np.ndarray)) else x).astype(float)
+
+#print(results_df.head())
+#print(results_df.dtypes)
+
+
+# Plot histogram
+#plt.figure(figsize=(10, 6))
+#sns.histplot(results_df['profit'], bins=10, kde=True)
+#plt.xlabel('Profit ($)')
+#plt.ylabel('Frequency')
+#plt.title('Histogram of Profit with uncertainty in Variable Cost')
+#plt.show()
+
+
+
+
+
+# Initialize
+fixed_cost = 5000
+variable_cost_unit = 100
+selling_price = 115
+spf_constant = 4900
+spf_linear = -35
+spf_quadratic = 0.06
+
+model2 = SingleProductSPF(fixed_cost=fixed_cost,
+                          variable_cost_unit=variable_cost_unit,
+                          selling_price=selling_price,
+                          spf_constant=spf_constant,
+                          spf_linear=spf_linear,
+                          spf_quadratic=spf_quadratic)
+
+num_reps = 100
+variable_cost_unit_sim = np.random.uniform(85, 110, num_reps)
+selling_price_sim = np.random.uniform(80, 140, num_reps)
+
+random_inputs = {'variable_cost_unit': variable_cost_unit_sim,
+                 'selling_price': selling_price_sim}
+
+scenario_inputs = {'selling_price': np.arange(80, 140, 10)}
+#list(ParameterGrid(scenario_inputs))
+
+sim_outputs = ['profit']
+
+model2_results = model2.simulate(random_inputs, sim_outputs, scenario_inputs)
+
+which_scenario = 4
+print(model2_results[which_scenario].keys())
+
+
+for scenario in model2_results:
+    print(scenario['scenario_num'], scenario['scenario_vals'], scenario['output']['profit'].mean())
+
+model2_results_df = get_sim_results_df(model2_results)
+print(model2_results_df.head())
+
+# Plot
+sns.boxplot(x="selling_price", y="profit", data=model2_results_df)
+
+profit_histo_g2 = sns.FacetGrid(model2_results_df, col='selling_price', sharey=True, col_wrap=3)
+profit_histo_g2 = profit_histo_g2.map(plt.hist, "profit")
+
+model2_results_df.groupby(['scenario_num'])['profit'].describe()
+
+plt.show()
+
+# Show summary statistics
+summary_stats = model2_results_df.groupby(['scenario_num'])['profit'].describe()
+print(summary_stats)
+
+# Calculate probability that profit is negative
+neg_profit_probability = (model2_results_df['profit'] < 0).mean()
 print(f'Negative Profit Probability: {neg_profit_probability:.2%}')
-
-
-
